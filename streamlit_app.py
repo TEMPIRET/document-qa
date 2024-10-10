@@ -72,5 +72,5 @@ else:
     )
 
     if question:
-        result = retrievalQA.invoke({"query": query})
+        result = retrievalQA.invoke({"query": question})
         st.write(result['result'])
