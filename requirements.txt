@@ -1,3 +1,4 @@
+streamlit
 langchain_community
 langchain_text_splitters
 huggingface_hub
