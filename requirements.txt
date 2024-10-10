@@ -1,2 +1,6 @@
-streamlit
-openai
+langchain_community
+langchain_text_splitters
+huggingface_hub
+sentence_transformers
+faiss-cpu
+pypdf
