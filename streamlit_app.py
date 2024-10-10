@@ -1,53 +1,76 @@
 import streamlit as st
-from openai import OpenAI
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+from langchain.prompts import PromptTemplate
+from langchain.chains import RetrievalQA
+from langchain_community.llms import HuggingFaceHub
+
+loader=PyPDFLoader("first.pdf")
+documents=loader.load()
+
+text_splitter=RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=40, add_start_index=True)
+all_splits=text_splitter.split_documents(documents)
+
+
+huggingface_embeddings=HuggingFaceBgeEmbeddings(
+    model_name="BAAI/bge-small-en-v1.5",      #sentence-transformers/all-MiniLM-l6-v2
+    model_kwargs={'device':'cpu'},
+    encode_kwargs={'normalize_embeddings':True}
+)
+
+## VectorStore Creation
+vectorstore=FAISS.from_documents(all_splits[:120],huggingface_embeddings)
+
+retriever=vectorstore.as_retriever(search_type="similarity",search_kwargs={"k":3})
 
 # Show title and description.
 st.title("📄 Document question answering")
 st.write(
-    "Upload a document below and ask a question about it – GPT will answer! "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
+    "To use this app, you need to provide an Huggingface API key. "
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
+prompt_template="""
+Use the following piece of context to answer the question asked.
+Please try to provide the answer only based on the context
+
+{context}
+Question:{question}
+
+Helpful Answers:
+ """
+
+prompt=PromptTemplate(template=prompt_template,input_variables=["context","question"])
+
+huggingface_api_key = st.text_input("Huggingface API Key", type="password")
+if not huggingface_api_key:
+    st.info("Please add your Huggingface API key to continue.", icon="🗝️")
 else:
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+    import os
+    os.environ['HUGGINGFACEHUB_API_TOKEN']=huggingface_api_key
 
-    # Let the user upload a file via `st.file_uploader`.
-    uploaded_file = st.file_uploader(
-        "Upload a document (.txt or .md)", type=("txt", "md")
-    )
-
+    
     # Ask the user for a question via `st.text_area`.
     question = st.text_area(
         "Now ask a question about the document!",
-        placeholder="Can you give me a short summary?",
-        disabled=not uploaded_file,
     )
 
-    if uploaded_file and question:
+    hf=HuggingFaceHub(
+    repo_id="mistralai/Mistral-7B-v0.1",
+    model_kwargs={"temperature":0.1,"max_length":500}
+    )
 
-        # Process the uploaded file and question.
-        document = uploaded_file.read().decode()
-        messages = [
-            {
-                "role": "user",
-                "content": f"Here's a document: {document} \n\n---\n\n {question}",
-            }
-        ]
+    retrievalQA=RetrievalQA.from_chain_type(
+        llm=hf,
+        chain_type="stuff",
+        retriever=retriever,
+        return_source_documents=True,
+        chain_type_kwargs={"prompt":prompt}
+    )
 
-        # Generate an answer using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            stream=True,
-        )
-
-        # Stream the response to the app using `st.write_stream`.
-        st.write_stream(stream)
+    if question:
+        result = retrievalQA.invoke({"query": query})
+        st.write(result['result'])
