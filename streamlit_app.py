@@ -12,7 +12,7 @@ from langchain_chroma import Chroma
 loader=PyPDFLoader("Biogeochemical_cycles.pdf")
 documents=loader.load()
 
-text_splitter=RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200 add_start_index=True)
+text_splitter=RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200, add_start_index=True)
 all_splits=text_splitter.split_documents(documents)
 
 
