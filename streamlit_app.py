@@ -7,24 +7,25 @@ from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from langchain_community.llms import HuggingFaceHub
+from langchain_chroma import Chroma
 
-loader=PyPDFLoader("first.pdf")
+loader=PyPDFLoader("Biogeochemical_cycles.pdf")
 documents=loader.load()
 
-text_splitter=RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=40, add_start_index=True)
+text_splitter=RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200 add_start_index=True)
 all_splits=text_splitter.split_documents(documents)
 
 
 huggingface_embeddings=HuggingFaceBgeEmbeddings(
-    model_name="BAAI/bge-small-en-v1.5",      #sentence-transformers/all-MiniLM-l6-v2
+    model_name="BAAI/bge-small-en-v1.5",
     model_kwargs={'device':'cpu'},
     encode_kwargs={'normalize_embeddings':True}
 )
 
 ## VectorStore Creation
-vectorstore=FAISS.from_documents(all_splits[:120],huggingface_embeddings)
+vectorstore = Chroma.from_documents(documents=all_splits, embedding=huggingface_embeddings)
 
-retriever=vectorstore.as_retriever(search_type="similarity",search_kwargs={"k":3})
+retriever=vectorstore.as_retriever(search_type="similarity",search_kwargs={"k":4})
 
 # Show title and description.
 st.title("📄 Document question answering")
@@ -33,13 +34,18 @@ st.write(
 )
 
 prompt_template="""
-Use the following piece of context to answer the question asked.
-Please try to provide the answer only based on the context
+    You are an assistant for question-answering tasks.
+    Use the following pieces of retrieved context to answer the question. 
+    If you don't know the answer, say that you don't know, don't try to make up an answer.
+    Use three sentences minimum and keep the answer concise.
+    You can use some information outside the context if you think it is necessary so as to provide a good explanation.
+    Never give me incomplete sentences.
+    "\n\n"
+    "{context}"
 
-{context}
 Question:{question}
 
-Helpful Answers:
+Helpful Answer:
  """
 
 prompt=PromptTemplate(template=prompt_template,input_variables=["context","question"])
@@ -59,8 +65,8 @@ else:
     )
 
     hf=HuggingFaceHub(
-    repo_id="mistralai/Mistral-7B-v0.1",
-    model_kwargs={"temperature":0.1,"max_length":500}
+    repo_id="meta-llama/Meta-Llama-3-8B-Instruct",
+    model_kwargs={"temperature":0.1,"max_length":2000}
     )
 
     retrievalQA=RetrievalQA.from_chain_type(
