@@ -5,3 +5,4 @@ huggingface_hub
 sentence_transformers
 pypdf
 langchain_chroma
+faiss-cpu
