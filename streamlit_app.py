@@ -29,7 +29,7 @@ prompt_template="""
     Helpful Answer:
     """
 
-  prompt=PromptTemplate(template=prompt_template,input_variables=["context","question"])
+prompt=PromptTemplate(template=prompt_template,input_variables=["context","question"])
 
 # Show title and description.
 st.title("📄 FSC 111 Slide revision")
