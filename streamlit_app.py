@@ -88,7 +88,7 @@ else:
             result = retrievalQA.invoke({"query": question})
             st.write(result['result'])
 
-    else if sec_button:
+    elif sec_button:
         loader=PyPDFLoader("Properties_of_life-Order_and_Metabolism.pdf")
         documents=loader.load()
 
