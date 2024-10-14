@@ -67,7 +67,7 @@ else:
         all_splits=text_splitter.split_documents(documents)
 
         ## VectorStore Creation
-        vectorstore = Chroma.from_documents(documents=all_splits, embedding=huggingface_embeddings)
+        vectorstore=FAISS.from_documents(all_splits,huggingface_embeddings)
 
         retriever=vectorstore.as_retriever(search_type="similarity",search_kwargs={"k":6})
 
@@ -96,7 +96,7 @@ else:
         all_splits=text_splitter.split_documents(documents)
 
         ## VectorStore Creation
-        vectorstore = Chroma.from_documents(documents=all_splits, embedding=huggingface_embeddings)
+        vectorstore=FAISS.from_documents(all_splits,huggingface_embeddings)
 
         retriever=vectorstore.as_retriever(search_type="similarity",search_kwargs={"k":6})
 
